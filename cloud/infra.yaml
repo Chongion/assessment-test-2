@@ -3,7 +3,50 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: |
   Assessment test 2
 
+Outputs:
+  WebsiteURL:
+    Value: !GetAtt
+      - S3Bucket
+      - WebsiteURL
+    Description: URL for website hosted on S3
+  S3BucketSecureURL:
+    Value: !Join
+      - ""
+      - - "https://"
+        - !GetAtt
+          - S3Bucket
+          - DomainName
+    Description: Name of S3 bucket to hold website content
+
 Resources:
+
+  S3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: "assesment2eve2"
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+  BucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      PolicyDocument:
+        Id: eveAsPolicy
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: "*"
+            Action: "s3:GetObject"
+            Resource: !Join
+              - ""
+              - - "arn:aws:s3:::"
+                - !Ref S3Bucket
+                - /*
+      Bucket: !Ref S3Bucket
 
   LambdaRole:
     Type: AWS::IAM::Role
@@ -64,27 +107,27 @@ Resources:
   LambdaIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
-      ApiId: !Ref MyApiGateway
+      ApiId: !Ref eve7ApiGateway
       Description: Lambda proxy integration
       IntegrationType: AWS_PROXY
       IntegrationMethod: POST
       PayloadFormatVersion: "2.0"
       IntegrationUri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Lambda.Arn}/invocations'
 
-  MyApiGateway:
+  eve7ApiGateway:
     Type: AWS::ApiGatewayV2::Api
     Properties:
-      Name: "MyApiGateway"
+      Name: "eve7ApiGateway"
       ProtocolType: "HTTP"
-      # CorsConfiguration:
-      #   AllowHeaders:
-      #     - Authorization
-      #   AllowMethods:
-      #     - GET
-      #     - POST
-      #     - OPTIONS
-      #   AllowOrigins:
-      #     - '*'
+      CorsConfiguration:
+        AllowHeaders:
+          - authorication
+        AllowMethods:
+           - GET 
+           - POST
+           - OPTIONS
+        AllowOrigins:
+           - '*'
 
   MyApiGatewayStage:
     Type: AWS::ApiGatewayV2::Stage
@@ -92,19 +135,19 @@ Resources:
       AutoDeploy: true
       DeploymentId: !Ref MyApiGatewayDeployment
       StageName: '$default'
-      ApiId: !Ref MyApiGateway
+      ApiId: !Ref eve7ApiGateway
   
   MyApiGatewayDeployment:
     Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
       - MyApiRoute
     Properties:
-      ApiId: !Ref MyApiGateway
+      ApiId: !Ref eve7ApiGateway
 
   MyApiRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref MyApiGateway
+      ApiId: !Ref eve7ApiGateway
       RouteKey: "GET /"
       AuthorizationType: NONE
       Target: !Join
